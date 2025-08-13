@@ -78,10 +78,6 @@ input[type="color"] {
     <input type="range" id="fontSizeSlider" min="5" max="30" value="15">
     <label>Colour</label>
     <input type="color" id="colorPicker" value="#00ffff">
-    <label>Refresh Rate (sec)</label>
-    <button class="arrow-btn" id="decreaseRate">◀</button>
-    <span id="refreshValue">10</span>
-    <button class="arrow-btn" id="increaseRate">▶</button>
     <label><input type="checkbox" id="stayAwake"> Always Awake</label>
 </div>
     <div id="credit">APP-BY-JEET</div>
@@ -92,12 +88,7 @@ let clock = document.getElementById('clock');
 let hoursMinutes = document.getElementById('hours-minutes');
 let secondsSpan = document.getElementById('seconds');
 let colon = document.getElementById('colon');
-let refreshValue = document.getElementById('refreshValue');
-let decreaseRate = document.getElementById('decreaseRate');
-let increaseRate = document.getElementById('increaseRate');
 let stayAwake = document.getElementById('stayAwake');
-
-let refreshRate = 10;
 let wakeLock = null;
 let colonVisible = true;
 
@@ -116,14 +107,6 @@ fontSizeSlider.addEventListener('input', () => {
 });
 colorPicker.addEventListener('input', () => {
     clock.style.color = colorPicker.value;
-});
-decreaseRate.addEventListener('click', () => {
-    if (refreshRate > 1) refreshRate--;
-    refreshValue.textContent = refreshRate;
-});
-increaseRate.addEventListener('click', () => {
-    refreshRate++;
-    refreshValue.textContent = refreshRate;
 });
 stayAwake.addEventListener('change', async () => {
     if (stayAwake.checked) {
