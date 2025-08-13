@@ -1,137 +1,205 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Neon Clock</title>
 <style>
-@font-face {
-    font-family: 'Digital7';
-    src: url(data:font/woff;base64,d09GRgABAAAAAA...) format('woff');
-    font-weight: normal;
-    font-style: normal;
+:root{
+  --bg:#000;
+  --neon:#39ff14;
+  --size:120;               /* base size (px) for HH:MM */
+  --sec-scale:0.55;         /* seconds scale relative to main */
+  --glow1:0 0 4px var(--neon);
+  --glow2:0 0 10px var(--neon);
 }
-body {
-    margin: 0;
-    background: black;
-    color: #0ff;
-    font-family: 'Digital7', monospace;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    height: 100vh;
-    overflow: hidden;
-}
-#clock {
-    margin-top: 10px;
-    font-size: 10vw;
-    text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
-    white-space: nowrap;
-}
-footer {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    background: rgba(0,0,0,0.7);
-    padding: 10px;
-    color: white;
-    text-align: center;
-    font-family: Arial, sans-serif;
-}
-label {
-    display: block;
-    margin-top: 8px;
-    font-size: 0.8rem;
-    color: #aaa;
-}
-.controls {
-    margin-top: 5px;
-}
-button {
-    background: none;
-    border: 1px solid #0ff;
-    color: #0ff;
-    padding: 2px 6px;
-    font-size: 1rem;
-    cursor: pointer;
-}
-input[type=color] {
-    background: none;
-    border: none;
-}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--neon);}
+body{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+.app{min-height:100%;width:100%;display:flex;flex-direction:column;align-items:center}
+
+.clock-wrap{width:100%;display:flex;justify-content:center;align-items:flex-start;padding:18px 10px 4px}
+.clock{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:center;gap:6px;max-width:100%;line-height:1;text-shadow:var(--glow1),var(--glow2)}
+.unit{display:flex;align-items:flex-end;justify-content:center}
+.digit{width:calc(var(--size) * 0.7px);height:calc(var(--size) * 1.2px);display:flex;align-items:center;justify-content:center}
+.digit svg{width:100%;height:100%;filter:drop-shadow(0 0 6px var(--neon));}
+/* colon uses fixed-width box; hide by opacity to avoid layout jumps */
+.colon{width:calc(var(--size) * 0.24px);display:flex;align-items:center;justify-content:center}
+.colon .dots{opacity:1;transition:opacity .2s}
+.colon.hide .dots{opacity:0}
+/* seconds smaller but baseline-aligned on same line */
+.sec{transform-origin:left bottom;transform:scale(var(--sec-scale));}
+.am_pm{transform-origin:left bottom;transform:scale(calc(var(--sec-scale) * 0.7));margin-left:6px}
+/* Controls pinned bottom */
+.controls{margin-top:auto;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 12px 6px}
+.bar{width:min(880px,96%);display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;justify-content:space-between;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02))}
+.group{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:6px}
+h4{margin:0;font:600 13px/1.1 system-ui, -apple-system;opacity:.85}
+input[type="color"],input[type="range"],button{cursor:pointer}
+input[type="range"]{width:240px}
+.stepper{display:flex;align-items:center;gap:8px}
+.stepper button{border:none;border-radius:8px;padding:6px 10px;background:#222;color:#fff}
+.value{min-width:2ch;text-align:center}
+.footer{font-size:12px;opacity:.6;text-shadow:var(--glow1);margin:6px 0 12px}
+.keepawake{display:flex;align-items:center;gap:8px}
+.toggle{appearance:none;width:46px;height:26px;border-radius:26px;background:#222;position:relative;outline:none}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#888;transition:left .2s, background .2s}
+.toggle:checked{background:#1f5}
+.toggle:checked::after{left:23px;background:#0b0}
+@media (max-width:520px){:root{--size:96;--sec-scale:.55}input[type="range"]{width:160px}}
 </style>
 </head>
 <body>
-<div id="clock">12:34:56</div>
-<footer>
-    <label for="sizeSlider">Font Size</label>
-    <div class="controls">
-        <input type="range" id="sizeSlider" min="5" max="20" value="10">
+<div class="app">
+  <div class="clock-wrap">
+    <div id="clock" class="clock" aria-label="Neon digital clock"></div>
+  </div>
+
+  <div class="controls">
+    <div class="bar">
+      <div class="group">
+        <div class="stack">
+          <h4>Font Size</h4>
+          <input id="size" type="range" min="80" max="240" value="120" aria-label="Adjust clock size">
+        </div>
+      </div>
+      <div class="group">
+        <div class="stack">
+          <h4>Colour</h4>
+          <input id="color" type="color" value="#39ff14" aria-label="Pick glow color">
+        </div>
+      </div>
+      <div class="group">
+        <div class="stack">
+          <h4>Refresh Interval (seconds)</h4>
+          <div class="stepper">
+            <button id="dec" aria-label="Decrease refresh">◀</button>
+            <input id="refresh" type="range" min="5" max="60" step="5" value="10" aria-label="Set refresh interval">
+            <button id="inc" aria-label="Increase refresh">▶</button>
+            <span class="value"><span id="refreshVal">10</span>s</span>
+          </div>
+        </div>
+      </div>
+      <div class="group">
+        <div class="stack">
+          <h4>Always Awake</h4>
+          <div class="keepawake">
+            <input id="awakeToggle" type="checkbox" class="toggle" aria-label="Keep screen awake">
+            <small id="awakeHint" style="opacity:.8">Tap to enable on iPhone</small>
+          </div>
+        </div>
+      </div>
     </div>
-    <label for="colorPicker">Colour</label>
-    <div class="controls">
-        <input type="color" id="colorPicker" value="#00ffff">
-    </div>
-    <label>Refresh Interval (seconds)</label>
-    <div class="controls">
-        <button id="decRefresh">◀</button>
-        <input type="number" id="refreshTime" value="10" min="5" max="60" step="5">
-        <button id="incRefresh">▶</button>
-    </div>
-    <div style="margin-top:10px;font-size:0.7rem;">APP-BY-JEET</div>
-</footer>
+    <div class="footer">APP-BY-JEET</div>
+  </div>
+</div>
+
 <script>
-let refreshInterval = 10;
-let colonVisible = true;
-let clockEl = document.getElementById('clock');
-
-function updateClock() {
-    const now = new Date();
-    const h = String(now.getHours() % 12 || 12).padStart(2, '0');
-    const m = String(now.getMinutes()).padStart(2, '0');
-    const s = String(now.getSeconds()).padStart(2, '0');
-    const colon = colonVisible ? ':' : ' ';
-    clockEl.textContent = `${h}${colon}${m}${colon}${s}`;
-    colonVisible = !colonVisible;
-}
-
-// Initial clock update
-updateClock();
-setInterval(updateClock, 1000);
-
-// Keep screen awake
-if ('wakeLock' in navigator) {
-    let wakeLock = null;
-    async function requestWakeLock() {
-        try {
-            wakeLock = await navigator.wakeLock.request('screen');
-        } catch (err) {
-            console.error(err);
-        }
-    }
-    requestWakeLock();
-}
-
-// Font size control
-document.getElementById('sizeSlider').addEventListener('input', e => {
-    clockEl.style.fontSize = e.target.value + 'vw';
-});
-
-// Colour control
-document.getElementById('colorPicker').addEventListener('input', e => {
-    clockEl.style.color = e.target.value;
-});
-
-// Refresh interval controls
-document.getElementById('decRefresh').onclick = () => {
-    refreshInterval = Math.max(5, refreshInterval - 5);
-    document.getElementById('refreshTime').value = refreshInterval;
+// ===== 8-segment digits via inline SVG (no external font) =====
+const SEGMENTS={
+ "0":["a","b","c","d","e","f"],"1":["b","c"],"2":["a","b","g","e","d"],
+ "3":["a","b","g","c","d"],"4":["f","g","b","c"],"5":["a","f","g","c","d"],
+ "6":["a","f","e","d","c","g"],"7":["a","b","c"],"8":["a","b","c","d","e","f","g"],"9":["a","b","c","d","f","g"]
 };
-document.getElementById('incRefresh').onclick = () => {
-    refreshInterval = Math.min(60, refreshInterval + 5);
-    document.getElementById('refreshTime').value = refreshInterval;
-};
+const colorVar=()=>getComputedStyle(document.documentElement).getPropertyValue('--neon').trim()||'#39ff14';
+function digitSVG(ch){
+  const on=SEGMENTS[ch]||[]; const neon=colorVar();
+  return `<svg viewBox="0 0 100 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <filter id="g"><feGaussianBlur stdDeviation="1.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <style>.s{fill:none;stroke:${neon};stroke-width:16;stroke-linecap:round;stroke-linejoin:round;filter:url(#g)}.off{opacity:.12}</style>
+    </defs>
+    <path class="s ${on.includes('a')?'':'off'}" d="M20 16 H80"/>
+    <path class="s ${on.includes('b')?'':'off'}" d="M84 20 V72"/>
+    <path class="s ${on.includes('c')?'':'off'}" d="M84 88 V140"/>
+    <path class="s ${on.includes('d')?'':'off'}" d="M20 144 H80"/>
+    <path class="s ${on.includes('e')?'':'off'}" d="M16 88 V140"/>
+    <path class="s ${on.includes('f')?'':'off'}" d="M16 20 V72"/>
+    <path class="s ${on.includes('g')?'':'off'}" d="M20 80 H80"/>
+  </svg>`;
+}
+function colonSVG(show){const neon=colorVar();return `<div class="digit colon ${show?'':'hide'}">
+  <svg viewBox="0 0 60 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs><style>.d{fill:${neon};filter:drop-shadow(0 0 6px ${neon})}</style></defs>
+    <circle class="d dots" cx="30" cy="50" r="8"/><circle class="d dots" cx="30" cy="110" r="8"/>
+  </svg></div>`;}
+
+function renderTime(now){
+  let h=now.getHours(); const ampm=h>=12?'PM':'AM'; h=h%12||12;
+  const m=now.getMinutes(), s=now.getSeconds();
+  const hh=String(h).padStart(2,'0'), mm=String(m).padStart(2,'0'), ss=String(s).padStart(2,'0');
+  const showColon=s%2===0;
+  let html='';
+  html+=`<div class="unit"><div class="digit">${digitSVG(hh[0])}</div></div>`;
+  html+=`<div class="unit"><div class="digit">${digitSVG(hh[1])}</div></div>`;
+  html+=colonSVG(showColon);
+  html+=`<div class="unit"><div class="digit">${digitSVG(mm[0])}</div></div>`;
+  html+=`<div class="unit"><div class="digit">${digitSVG(mm[1])}</div></div>`;
+  html+=colonSVG(showColon);
+  html+=`<div class="unit sec"><div class="digit">${digitSVG(ss[0])}</div></div>`;
+  html+=`<div class="unit sec"><div class="digit">${digitSVG(ss[1])}</div></div>`;
+  html+=`<div class="unit am_pm"><span style="font:600 28px system-ui;color:${colorVar()};text-shadow:var(--glow1)">`+ampm+`</span></div>`;
+  return html;
+}
+const clock=document.getElementById('clock');
+function tick(){ clock.innerHTML=renderTime(new Date()); }
+setInterval(tick,1000); tick();
+
+// Controls
+const color=document.getElementById('color');
+color.addEventListener('input',e=>{document.documentElement.style.setProperty('--neon',e.target.value); tick();});
+const size=document.getElementById('size');
+size.addEventListener('input',e=>{document.documentElement.style.setProperty('--size',e.target.value);});
+const refresh=document.getElementById('refresh'), refreshVal=document.getElementById('refreshVal');
+document.getElementById('inc').addEventListener('click',()=>{const v=Math.min(60,parseInt(refresh.value)+5);refresh.value=v;refreshVal.textContent=v;});
+document.getElementById('dec').addEventListener('click',()=>{const v=Math.max(5,parseInt(refresh.value)-5);refresh.value=v;refreshVal.textContent=v;});
+refresh.addEventListener('input',e=>{refreshVal.textContent=e.target.value;});
+
+// Wake Lock + iOS/WebAudio fallback
+let wakeLock=null, audioCtx=null, silentNode=null, awake=false, heartbeat=null;
+async function enableAwake(){
+  if(awake) return;
+  awake = true;
+  // Try Wake Lock
+  try{ if('wakeLock' in navigator){ wakeLock = await navigator.wakeLock.request('screen'); } }catch(e){}
+  // Start WebAudio silent loop (iOS-friendly) after user gesture
+  try{
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator(); // sine @ 20Hz (inaudible-ish), we'll mute it
+    const gain = audioCtx.createGain();
+    gain.gain.value = 0.00001; // effectively silent
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.frequency.value = 20;
+    osc.start();
+    silentNode = {osc, gain};
+    document.getElementById('awakeHint').textContent = 'Awake enabled';
+  }catch(e){
+    document.getElementById('awakeHint').textContent = 'Awake fallback failed';
+  }
+  // Heartbeat scroll to poke iOS idle timer
+  heartbeat = setInterval(()=>{ window.scrollTo(0,0); }, (parseInt(refresh.value)||10)*1000);
+}
+function disableAwake(){
+  awake=false;
+  if(wakeLock){ try{ wakeLock.release(); }catch(e){} wakeLock=null; }
+  if(silentNode){ try{ silentNode.osc.stop(); }catch(e){} silentNode=null; }
+  if(audioCtx){ try{ audioCtx.close(); }catch(e){} audioCtx=null; }
+  if(heartbeat){ clearInterval(heartbeat); heartbeat=null; }
+  document.getElementById('awakeHint').textContent = 'Tap to enable on iPhone';
+}
+const awakeToggle=document.getElementById('awakeToggle');
+awakeToggle.addEventListener('change', e=>{ e.target.checked ? enableAwake() : disableAwake(); });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && awake){ enableAwake(); } });
+
+// PWA
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
 </script>
 </body>
 </html>
