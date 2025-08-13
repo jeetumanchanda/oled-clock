@@ -1,8 +1,9 @@
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open('neon-clock-v2').then(cache => cache.addAll([
-    './','./index.html','./manifest.json','./icon.png'
+  e.waitUntil(caches.open('clock-cache').then(cache => cache.addAll([
+    './',
+    './index.html'
   ])));
 });
 self.addEventListener('fetch', e => {
-  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+  e.respondWith(caches.match(e.request).then(response => response || fetch(e.request)));
 });
