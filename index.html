@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neon Clock</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="512x512" href="icon.png">
+<style>
+  :root {
+    --bg: #000;
+    --neon: #00ffff;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--neon);
+    font-family: 'Courier New', monospace;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    height: 100vh;
+    padding-top: 20px;
+  }
+  .clock {
+    display: flex;
+    align-items: baseline;
+    font-weight: bold;
+    text-shadow: 0 0 10px var(--neon), 0 0 20px var(--neon);
+  }
+  .time {
+    font-size: 64px;
+  }
+  .colon {
+    width: 24px;
+    text-align: center;
+    animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+  .seconds {
+    font-size: 32px;
+    margin-left: 8px;
+  }
+  .ampm {
+    font-size: 20px;
+    margin-left: 4px;
+    opacity: 0.8;
+  }
+</style>
+</head>
+<body>
+  <div class="clock">
+    <div id="hours" class="time">--</div>
+    <div class="colon">:</div>
+    <div id="minutes" class="time">--</div>
+    <div class="colon">:</div>
+    <div id="seconds" class="seconds">--</div>
+    <div id="ampm" class="ampm">--</div>
+  </div>
+
+<script>
+function updateClock() {
+  const now = new Date();
+  let hours = now.getHours();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  const minutes = now.getMinutes().toString().padStart(2, '0');
+  const seconds = now.getSeconds().toString().padStart(2, '0');
+
+  document.getElementById('hours').textContent = hours.toString().padStart(2, '0');
+  document.getElementById('minutes').textContent = minutes;
+  document.getElementById('seconds').textContent = seconds;
+  document.getElementById('ampm').textContent = ampm;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
+}
+
+// Keep screen awake (Wake Lock API)
+if ('wakeLock' in navigator) {
+  let wakeLock = null;
+  async function requestWakeLock() {
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+    } catch (err) {
+      console.error(`${err.name}, ${err.message}`);
+    }
+  }
+  requestWakeLock();
+}
+</script>
+</body>
+</html>
