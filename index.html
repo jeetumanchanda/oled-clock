@@ -1,253 +1,132 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<meta name="theme-color" content="#000000"/>
-<link rel="manifest" href="manifest.json">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Neon Clock</title>
+<link rel="manifest" href="manifest.json">
 <style>
-/* === Embedded font: replace FONT_BASE64_PLACEHOLDER with your base64 font (WOFF recommended) === */
 @font-face {
-  font-family: 'Digital7';
-  src: url(data:font/woff;base64,FONT_BASE64_PLACEHOLDER) format('woff');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
+    font-family: 'Digital7';
+    src: url(data:font/woff2;base64,d09GMgABAAAAAA...) format('woff2');
+    font-display: swap;
 }
-
-/* Theme + sizing variables */
-:root{
-  --bg:#000;
-  --neon:#39ff14;
-  --size:120;       /* base size for HH/MM in px */
-  --sec-scale:0.55; /* seconds scale */
-  --glow1: 0 0 4px var(--neon);
-  --glow2: 0 0 10px var(--neon);
+body {
+    background-color: black;
+    color: #0ff;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    font-family: 'Digital7', monospace;
+    justify-content: flex-start;
+    align-items: center;
 }
-*{box-sizing:border-box}
-html,body{height:100%;margin:0;background:var(--bg);color:var(--neon);font-family:Digital7, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial}
-body{display:flex;flex-direction:column;align-items:center}
-
-/* Clock area */
-.clock-wrap{width:100%;display:flex;justify-content:center;padding:18px 10px 8px}
-.clock{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:center;gap:6px;max-width:100%;line-height:1;text-shadow:var(--glow1),var(--glow2)}
-.unit{display:flex;align-items:flex-end;justify-content:center}
-.digit{display:flex;align-items:center;justify-content:center; font-family:Digital7; font-weight:700; color:var(--neon);}
-/* each digit reserved box: width uses CSS variable --size, preventing shifts when colon toggles */
-.digit.box{width:calc(var(--size) * 0.7px); height:calc(var(--size) * 1.2px); display:flex;align-items:center;justify-content:center;}
-.colon{width:calc(var(--size) * 0.24px);display:flex;align-items:center;justify-content:center}
-.colon .dots{opacity:1;transition:opacity .18s}
-.colon.hide .dots{opacity:0}
-
-/* seconds smaller but baseline aligned */
-.sec{transform-origin:left bottom; transform:scale(var(--sec-scale));}
-
-/* Controls pinned bottom */
-.controls{margin-top:auto;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 12px 8px}
-.bar{width:min(880px,96%);display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;justify-content:space-between;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01))}
-.group{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.stack{display:flex;flex-direction:column;gap:6px}
-h4{margin:0;font:600 13px/1.1 system-ui, -apple-system;opacity:.85}
-input[type="color"], input[type="range"], button { cursor:pointer }
-input[type="range"]{ width:240px }
-.stepper{display:flex;align-items:center;gap:8px}
-.stepper button{border:none;border-radius:8px;padding:6px 10px;background:#222;color:#fff}
-.value{min-width:2ch;text-align:center}
-.footer{font-size:12px;opacity:.6;text-shadow:var(--glow1);margin:6px 0 12px}
-
-/* tiny toggle style */
-.keepawake{display:flex;align-items:center;gap:8px}
-.toggle{appearance:none;width:46px;height:26px;border-radius:26px;background:#222;position:relative;outline:none}
-.toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#888;transition:left .2s, background .2s}
-.toggle:checked{background:#1f5}
-.toggle:checked::after{left:23px;background:#0b0}
-
-/* responsiveness */
-@media (max-width:520px){ :root{--size:96;--sec-scale:.55} input[type="range"]{width:160px} }
+#clock {
+    text-align: center;
+    font-size: var(--clock-size, 15vw);
+    text-shadow: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 20px currentColor;
+}
+#seconds {
+    font-size: 0.5em;
+}
+.controls {
+    margin-top: auto;
+    padding: 10px;
+    width: 100%;
+    background: #111;
+    text-align: center;
+}
+label {
+    display: block;
+    margin-top: 10px;
+    color: white;
+    font-size: 14px;
+}
+input[type=range], input[type=color] {
+    width: 80%;
+}
+.arrow-btn {
+    background: #222;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    margin: 0 5px;
+    cursor: pointer;
+}
 </style>
 </head>
 <body>
-  <div class="clock-wrap">
-    <div id="clock" class="clock" aria-label="Neon digital clock"></div>
-  </div>
-
-  <div class="controls">
-    <div class="bar">
-      <div class="group">
-        <div class="stack">
-          <h4>Font Size</h4>
-          <input id="size" type="range" min="80" max="240" value="120" aria-label="Adjust clock size">
-        </div>
-      </div>
-
-      <div class="group">
-        <div class="stack">
-          <h4>Colour</h4>
-          <input id="color" type="color" value="#39ff14" aria-label="Pick glow color">
-        </div>
-      </div>
-
-      <div class="group">
-        <div class="stack">
-          <h4>Refresh Interval (seconds)</h4>
-          <div class="stepper">
-            <button id="dec" aria-label="Decrease refresh">◀</button>
-            <input id="refresh" type="range" min="5" max="60" step="5" value="10" aria-label="Set refresh interval">
-            <button id="inc" aria-label="Increase refresh">▶</button>
-            <span class="value"><span id="refreshVal">10</span>s</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="group">
-        <div class="stack">
-          <h4>Always Awake</h4>
-          <div class="keepawake">
-            <input id="awakeToggle" type="checkbox" class="toggle" aria-label="Keep screen awake">
-            <small id="awakeHint" style="opacity:.8">Tap to enable</small>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="footer">APP-BY-JEET</div>
-  </div>
-
+<div id="clock"><span id="hours-minutes"></span><span id="colon">:</span><span id="seconds"></span></div>
+<div class="controls">
+    <label>Font Size</label>
+    <input type="range" id="fontSizeSlider" min="5" max="30" value="15">
+    <label>Colour</label>
+    <input type="color" id="colorPicker" value="#00ffff">
+    <label>Refresh Rate (sec)</label>
+    <button class="arrow-btn" id="decreaseRate">◀</button>
+    <span id="refreshValue">10</span>
+    <button class="arrow-btn" id="increaseRate">▶</button>
+    <label><input type="checkbox" id="stayAwake"> Always Awake</label>
+</div>
 <script>
-/* ===== digits rendered using the embedded font (Digital7) for consistent look =====
-   We render digits inside fixed-size boxes to avoid layout jumps when colon toggles.
-*/
-const clock = document.getElementById('clock');
-const sizeInput = document.getElementById('size');
-const colorInput = document.getElementById('color');
-const refreshInput = document.getElementById('refresh');
-const refreshVal = document.getElementById('refreshVal');
-const decBtn = document.getElementById('dec'), incBtn = document.getElementById('inc');
-const awakeToggle = document.getElementById('awakeToggle');
-const awakeHint = document.getElementById('awakeHint');
+let fontSizeSlider = document.getElementById('fontSizeSlider');
+let colorPicker = document.getElementById('colorPicker');
+let clock = document.getElementById('clock');
+let hoursMinutes = document.getElementById('hours-minutes');
+let secondsSpan = document.getElementById('seconds');
+let colon = document.getElementById('colon');
+let refreshValue = document.getElementById('refreshValue');
+let decreaseRate = document.getElementById('decreaseRate');
+let increaseRate = document.getElementById('increaseRate');
+let stayAwake = document.getElementById('stayAwake');
 
-function makeDigitBox(char, extraClass='') {
-  // uses the embedded font 'Digital7'
-  // we keep width fixed using CSS .digit.box so digit never shifts layout
-  return `<div class="unit"><div class="digit box ${extraClass}">${char}</div></div>`;
-}
-
-function makeColon(show) {
-  // colon uses opacity toggle to avoid reflow
-  const cls = show ? '' : 'hide';
-  return `<div class="digit colon ${cls}"><div class="dots" aria-hidden="true">:</div></div>`;
-}
-
-function renderTime(now) {
-  let h = now.getHours();
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  h = h % 12 || 12;
-  const m = String(now.getMinutes()).padStart(2,'0');
-  const s = String(now.getSeconds()).padStart(2,'0');
-  const hh = String(h).padStart(2,'0');
-  const showColon = (now.getSeconds() % 2 === 0);
-
-  // Build pieces: HH : MM : SS  (seconds boxes scaled via CSS transform)
-  let html = '';
-  html += makeDigitBox(hh[0]);
-  html += makeDigitBox(hh[1]);
-  html += makeColon(showColon);
-  html += makeDigitBox(m[0]);
-  html += makeDigitBox(m[1]);
-  html += makeColon(showColon);
-  html += `<div class="unit sec"><div class="digit box">${s[0]}</div></div>`;
-  html += `<div class="unit sec"><div class="digit box">${s[1]}</div></div>`;
-  html += `<div class="unit am_pm" style="transform:scale(calc(var(--sec-scale) * 0.7)); display:flex; align-items:flex-end; padding-left:6px;"><span style="font:600 20px/1 system-ui; color:var(--neon)">${ampm}</span></div>`;
-  clock.innerHTML = html;
-}
-
-/* update tick */
-function tick() { renderTime(new Date()); }
-
-/* Controls behaviour */
-sizeInput.addEventListener('input', (e) => {
-  document.documentElement.style.setProperty('--size', e.target.value);
-});
-colorInput.addEventListener('input', (e) => {
-  document.documentElement.style.setProperty('--neon', e.target.value);
-  // re-render to update inline elements (if any)
-  tick();
-});
-decBtn.addEventListener('click', ()=>{ refreshInput.value = Math.max(5, parseInt(refreshInput.value)-5); refreshVal.textContent = refreshInput.value; });
-incBtn.addEventListener('click', ()=>{ refreshInput.value = Math.min(60, parseInt(refreshInput.value)+5); refreshVal.textContent = refreshInput.value; });
-refreshInput.addEventListener('input', (e)=>{ refreshVal.textContent = e.target.value; if(heartbeat) { clearInterval(heartbeat); heartbeat = setInterval(heartbeatTick, parseInt(e.target.value)*1000); } });
-
-/* Keep screen awake:
-   - Try Wake Lock API (Android/modern browsers)
-   - iOS fallback: start a silent WebAudio oscillator after the user toggles wake
-*/
+let refreshRate = 10;
 let wakeLock = null;
-let audioCtx = null;
-let osc = null;
-let heartbeat = null;
+let colonVisible = true;
 
-async function enableAwake() {
-  // Wake Lock (best-effort)
-  try {
-    if ('wakeLock' in navigator) {
-      wakeLock = await navigator.wakeLock.request('screen');
-      wakeLock.addEventListener('release', ()=>{ /* released */ });
-    }
-  } catch(e) { /* ignore */ }
-
-  // WebAudio silent oscillator (helps on iOS when started after a user gesture)
-  try {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      gain.gain.value = 0.00001; // effectively silent
-      osc.type = 'sine';
-      osc.frequency.value = 20;
-      osc.connect(gain).connect(audioCtx.destination);
-      osc.start();
-    }
-  } catch(e) { /* ignore */ }
-
-  // heart-beat scroll fallback (keeps iOS from sleeping sometimes)
-  const interval = parseInt(refreshInput.value) || 10;
-  if (heartbeat) clearInterval(heartbeat);
-  heartbeat = setInterval(heartbeatTick, interval*1000);
-  awakeHint.textContent = 'Awake enabled';
+function updateClock() {
+    let now = new Date();
+    let hours = now.getHours() % 12 || 12;
+    let minutes = String(now.getMinutes()).padStart(2, '0');
+    let seconds = String(now.getSeconds()).padStart(2, '0');
+    hoursMinutes.textContent = hours + ":" + minutes;
+    secondsSpan.textContent = seconds;
+    colon.style.visibility = colonVisible ? 'visible' : 'hidden';
+    colonVisible = !colonVisible;
 }
-
-function heartbeatTick() {
-  try { window.scrollTo(0,0); } catch(e) {}
-}
-
-function disableAwake() {
-  try { if (wakeLock) { wakeLock.release(); wakeLock = null; } } catch(e){}
-  try { if (osc) { osc.stop(); osc.disconnect(); osc = null; } if (audioCtx) { audioCtx.close(); audioCtx = null; } } catch(e){}
-  if (heartbeat) { clearInterval(heartbeat); heartbeat = null; }
-  awakeHint.textContent = 'Tap to enable';
-}
-
-/* toggle */
-awakeToggle.addEventListener('change', (e) => {
-  if (e.target.checked) {
-    // must be in response to user gesture; enable features
-    enableAwake();
-  } else {
-    disableAwake();
-  }
+fontSizeSlider.addEventListener('input', () => {
+    clock.style.setProperty('--clock-size', fontSizeSlider.value + 'vw');
 });
-
-document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState === 'visible') { /* try to re-enable if necessary */ if (awakeToggle.checked) enableAwake(); } });
-
-/* start */
-tick();
-setInterval(tick, 1000);
-
-/* Service worker registration (PWA) */
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js').catch(()=>{});
-}
+colorPicker.addEventListener('input', () => {
+    clock.style.color = colorPicker.value;
+});
+decreaseRate.addEventListener('click', () => {
+    if (refreshRate > 1) refreshRate--;
+    refreshValue.textContent = refreshRate;
+});
+increaseRate.addEventListener('click', () => {
+    refreshRate++;
+    refreshValue.textContent = refreshRate;
+});
+stayAwake.addEventListener('change', async () => {
+    if (stayAwake.checked) {
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+        } catch(e) {
+            let video = document.createElement('video');
+            video.setAttribute('playsinline', '');
+            video.muted = true;
+            video.loop = true;
+            video.play();
+        }
+    } else if (wakeLock) {
+        wakeLock.release();
+        wakeLock = null;
+    }
+});
+setInterval(updateClock, 1000);
+updateClock();
 </script>
 </body>
 </html>
