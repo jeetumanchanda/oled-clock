@@ -3,132 +3,145 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Neon Clock</title>
-<link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="512x512" href="icon.png">
+<title>Neon Digital Clock</title>
 <style>
-  :root {
-    --bg: #000;
-    --neon: #00ffff;
-    --main-size: 96px;
-  }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--neon);
-    font-family: 'Courier New', monospace;
+@font-face {
+    font-family: 'Digital7';
+    src: url(data:font/ttf;base64,QUFFQUFBQUxBSUFBQXdBd1QxTXZNZzhTQUFBQ0FBQUNjR2RRWjJnQUFBR0FBQUFEZEdobFlXUUEuLi4=) format('truetype');
+}
+body {
+    background-color: black;
+    color: #39ff14;
+    font-family: 'Digital7', monospace;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     align-items: center;
+    justify-content: flex-start;
     height: 100vh;
-    padding-top: 20px;
-    padding-bottom: 10px;
-  }
-  .controls {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-  }
-  .clock {
-    display: flex;
-    align-items: baseline;
-    font-weight: bold;
-    text-shadow: 0 0 15px var(--neon), 0 0 30px var(--neon), 0 0 50px var(--neon);
-  }
-  .time {
-    font-size: var(--main-size);
-  }
-  .colon {
-    width: 32px;
+    margin: 0;
+}
+#clock {
+    font-size: 80px;
+    margin-top: 20px;
+    text-shadow: 0 0 10px #39ff14, 0 0 20px #39ff14;
+}
+#controls {
+    margin-top: auto;
+    background: rgba(0,0,0,0.8);
+    padding: 10px;
+    width: 100%;
     text-align: center;
-    animation: blink 1s steps(1) infinite;
-    font-size: var(--main-size);
-  }
-  @keyframes blink {
-    50% { opacity: 0; }
-  }
-  .seconds {
-    font-size: calc(var(--main-size) * 0.5);
-    margin-left: 8px;
-  }
-  .ampm {
-    font-size: calc(var(--main-size) * 0.25);
-    margin-left: 6px;
-    opacity: 0.8;
-  }
-  .footer {
+    color: white;
+}
+.control-group {
+    margin: 10px 0;
+}
+label {
+    display: block;
     font-size: 14px;
-    opacity: 0.6;
-    text-shadow: 0 0 5px var(--neon);
-  }
-  input[type="color"], input[type="range"] {
-    cursor: pointer;
-  }
+    margin-bottom: 5px;
+    color: #ccc;
+}
+input[type=range] {
+    width: 60%;
+}
+.color-picker {
+    width: 60px;
+    height: 30px;
+    border: none;
+}
+.arrow-btn {
+    background: #222;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    margin: 0 5px;
+    font-size: 18px;
+}
 </style>
 </head>
 <body>
-  <div class="clock">
-    <div id="hours" class="time">--</div>
-    <div class="colon">:</div>
-    <div id="minutes" class="time">--</div>
-    <div class="colon">:</div>
-    <div id="seconds" class="seconds">--</div>
-    <div id="ampm" class="ampm">--</div>
-  </div>
+<div id="clock"></div>
 
-  <div class="controls">
-    <label>Glow Color: <input type="color" id="colorPicker" value="#00ffff"></label>
-    <label>Font Size: <input type="range" id="sizeSlider" min="50" max="150" value="96"></label>
-  </div>
-
-  <div class="footer">APP-BY-JEET</div>
+<div id="controls">
+    <div class="control-group">
+        <label>Font Size</label>
+        <input type="range" id="fontSize" min="40" max="200" value="80">
+    </div>
+    <div class="control-group">
+        <label>Colour</label>
+        <input type="color" id="fontColor" class="color-picker" value="#39ff14">
+    </div>
+    <div class="control-group">
+        <label>Refresh Interval (seconds)</label>
+        <button class="arrow-btn" id="decrease">◀</button>
+        <span id="refreshValue">10</span>s
+        <button class="arrow-btn" id="increase">▶</button>
+    </div>
+    <div style="font-size:10px; color:gray; margin-top:10px;">APP-BY-JEET</div>
+</div>
 
 <script>
-function updateClock() {
-  const now = new Date();
-  let hours = now.getHours();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12 || 12;
-  const minutes = now.getMinutes().toString().padStart(2, '0');
-  const seconds = now.getSeconds().toString().padStart(2, '0');
+let refreshInterval = 10;
+let wakeLock = null;
 
-  document.getElementById('hours').textContent = hours.toString().padStart(2, '0');
-  document.getElementById('minutes').textContent = minutes;
-  document.getElementById('seconds').textContent = seconds;
-  document.getElementById('ampm').textContent = ampm;
+async function requestWakeLock() {
+    try {
+        wakeLock = await navigator.wakeLock.request('screen');
+    } catch (err) {
+        console.log(err);
+    }
 }
+
+document.addEventListener('visibilitychange', () => {
+    if (wakeLock !== null && document.visibilityState === 'visible') {
+        requestWakeLock();
+    }
+});
+
+function updateClock() {
+    const now = new Date();
+    let hh = now.getHours();
+    let mm = now.getMinutes();
+    let ss = now.getSeconds();
+    const ampm = hh >= 12 ? 'PM' : 'AM';
+    hh = hh % 12 || 12;
+    hh = String(hh).padStart(2, '0');
+    mm = String(mm).padStart(2, '0');
+    ss = String(ss).padStart(2, '0');
+
+    const colon = (now.getSeconds() % 2 === 0) ? ':' : ' ';
+    document.getElementById('clock').innerHTML = `<span style="font-size:1em;">${hh}</span>${colon}<span style="font-size:1em;">${mm}</span>:<span style="font-size:0.6em; vertical-align:baseline;">${ss}</span> ${ampm}`;
+}
+
 setInterval(updateClock, 1000);
 updateClock();
 
-// Color picker functionality
-document.getElementById('colorPicker').addEventListener('input', function(e) {
-  document.documentElement.style.setProperty('--neon', e.target.value);
+// Fallback to keep awake on iOS by refreshing every X seconds
+setInterval(() => {
+    window.scrollTo(0, 0);
+}, refreshInterval * 1000);
+
+document.getElementById('fontSize').addEventListener('input', function() {
+    document.getElementById('clock').style.fontSize = this.value + 'px';
 });
 
-// Font size slider functionality
-document.getElementById('sizeSlider').addEventListener('input', function(e) {
-  document.documentElement.style.setProperty('--main-size', e.target.value + 'px');
+document.getElementById('fontColor').addEventListener('input', function() {
+    document.getElementById('clock').style.color = this.value;
+    document.getElementById('clock').style.textShadow = `0 0 10px ${this.value}, 0 0 20px ${this.value}`;
 });
 
-// Register service worker
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js');
-}
+document.getElementById('increase').addEventListener('click', function() {
+    if (refreshInterval < 60) refreshInterval += 5;
+    document.getElementById('refreshValue').innerText = refreshInterval;
+});
 
-// Keep screen awake (Wake Lock API)
-if ('wakeLock' in navigator) {
-  let wakeLock = null;
-  async function requestWakeLock() {
-    try {
-      wakeLock = await navigator.wakeLock.request('screen');
-    } catch (err) {
-      console.error(`${err.name}, ${err.message}`);
-    }
-  }
-  requestWakeLock();
-}
+document.getElementById('decrease').addEventListener('click', function() {
+    if (refreshInterval > 5) refreshInterval -= 5;
+    document.getElementById('refreshValue').innerText = refreshInterval;
+});
+
+requestWakeLock();
 </script>
 </body>
 </html>
