@@ -1,147 +1,164 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Neon Digital Clock</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Neon Clock</title>
 <style>
-@font-face {
-    font-family: 'Digital7';
-    src: url(data:font/ttf;base64,QUFFQUFBQUxBSUFBQXdBd1QxTXZNZzhTQUFBQ0FBQUNjR2RRWjJnQUFBR0FBQUFEZEdobFlXUUEuLi4=) format('truetype');
+:root{
+  --bg:#000;
+  --neon:#39ff14;
+  --size:120;               /* base size (px) for HH:MM */
+  --sec-scale:0.55;         /* seconds scale relative to main */
+  --glow1:0 0 4px var(--neon);
+  --glow2:0 0 10px var(--neon);
 }
-body {
-    background-color: black;
-    color: #39ff14;
-    font-family: 'Digital7', monospace;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    height: 100vh;
-    margin: 0;
-}
-#clock {
-    font-size: 80px;
-    margin-top: 20px;
-    text-shadow: 0 0 10px #39ff14, 0 0 20px #39ff14;
-}
-#controls {
-    margin-top: auto;
-    background: rgba(0,0,0,0.8);
-    padding: 10px;
-    width: 100%;
-    text-align: center;
-    color: white;
-}
-.control-group {
-    margin: 10px 0;
-}
-label {
-    display: block;
-    font-size: 14px;
-    margin-bottom: 5px;
-    color: #ccc;
-}
-input[type=range] {
-    width: 60%;
-}
-.color-picker {
-    width: 60px;
-    height: 30px;
-    border: none;
-}
-.arrow-btn {
-    background: #222;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    margin: 0 5px;
-    font-size: 18px;
-}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--neon);}
+body{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+.app{min-height:100%;width:100%;display:flex;flex-direction:column;align-items:center}
+
+.clock-wrap{width:100%;display:flex;justify-content:center;align-items:flex-start;padding:18px 10px 4px}
+.clock{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:center;gap:6px;max-width:100%;line-height:1;text-shadow:var(--glow1),var(--glow2)}
+.unit{display:flex;align-items:flex-end;justify-content:center}
+.digit{width:calc(var(--size) * 0.7px);height:calc(var(--size) * 1.2px);display:flex;align-items:center;justify-content:center}
+.digit svg{width:100%;height:100%;filter:drop-shadow(0 0 6px var(--neon));}
+/* colon uses fixed-width box; hide by opacity to avoid layout jumps */
+.colon{width:calc(var(--size) * 0.24px);display:flex;align-items:center;justify-content:center}
+.colon .dots{opacity:1;transition:opacity .2s}
+.colon.hide .dots{opacity:0}
+/* seconds smaller but baseline-aligned on same line */
+.sec{transform-origin:left bottom;transform:scale(var(--sec-scale));}
+.am_pm{transform-origin:left bottom;transform:scale(calc(var(--sec-scale) * 0.7));margin-left:6px}
+/* Controls pinned bottom */
+.controls{margin-top:auto;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 12px 6px}
+.bar{width:min(880px,96%);display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;justify-content:space-between;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02))}
+.group{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:6px}
+h4{margin:0;font:600 13px/1.1 system-ui, -apple-system;opacity:.85}
+input[type="color"],input[type="range"],button{cursor:pointer}
+input[type="range"]{width:240px}
+.stepper{display:flex;align-items:center;gap:8px}
+.stepper button{border:none;border-radius:8px;padding:6px 10px;background:#222;color:#fff}
+.value{min-width:2ch;text-align:center}
+.footer{font-size:12px;opacity:.6;text-shadow:var(--glow1);margin:6px 0 12px}
+@media (max-width:520px){:root{--size:96;--sec-scale:.55}input[type="range"]{width:160px}}
 </style>
 </head>
 <body>
-<div id="clock"></div>
+<div class="app">
+  <div class="clock-wrap">
+    <div id="clock" class="clock" aria-label="Neon digital clock"></div>
+  </div>
 
-<div id="controls">
-    <div class="control-group">
-        <label>Font Size</label>
-        <input type="range" id="fontSize" min="40" max="200" value="80">
+  <div class="controls">
+    <div class="bar">
+      <div class="group">
+        <div class="stack">
+          <h4>Font Size</h4>
+          <input id="size" type="range" min="80" max="240" value="120" aria-label="Adjust clock size">
+        </div>
+      </div>
+      <div class="group">
+        <div class="stack">
+          <h4>Colour</h4>
+          <input id="color" type="color" value="#39ff14" aria-label="Pick glow color">
+        </div>
+      </div>
+      <div class="group">
+        <div class="stack">
+          <h4>Refresh Interval (seconds)</h4>
+          <div class="stepper">
+            <button id="dec" aria-label="Decrease refresh">◀</button>
+            <input id="refresh" type="range" min="5" max="60" step="5" value="10" aria-label="Set refresh interval">
+            <button id="inc" aria-label="Increase refresh">▶</button>
+            <span class="value"><span id="refreshVal">10</span>s</span>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="control-group">
-        <label>Colour</label>
-        <input type="color" id="fontColor" class="color-picker" value="#39ff14">
-    </div>
-    <div class="control-group">
-        <label>Refresh Interval (seconds)</label>
-        <button class="arrow-btn" id="decrease">◀</button>
-        <span id="refreshValue">10</span>s
-        <button class="arrow-btn" id="increase">▶</button>
-    </div>
-    <div style="font-size:10px; color:gray; margin-top:10px;">APP-BY-JEET</div>
+    <div class="footer">APP-BY-JEET</div>
+  </div>
 </div>
 
 <script>
-let refreshInterval = 10;
-let wakeLock = null;
-
-async function requestWakeLock() {
-    try {
-        wakeLock = await navigator.wakeLock.request('screen');
-    } catch (err) {
-        console.log(err);
-    }
+// ===== 8-segment digits via inline SVG (no external font) =====
+const SEGMENTS={
+ "0":["a","b","c","d","e","f"],"1":["b","c"],"2":["a","b","g","e","d"],
+ "3":["a","b","g","c","d"],"4":["f","g","b","c"],"5":["a","f","g","c","d"],
+ "6":["a","f","e","d","c","g"],"7":["a","b","c"],"8":["a","b","c","d","e","f","g"],"9":["a","b","c","d","f","g"]
+};
+const colorVar=()=>getComputedStyle(document.documentElement).getPropertyValue('--neon').trim()||'#39ff14';
+function digitSVG(ch){
+  const on=SEGMENTS[ch]||[]; const neon=colorVar();
+  return `<svg viewBox="0 0 100 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <filter id="g"><feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <style>.s{fill:none;stroke:${neon};stroke-width:16;stroke-linecap:round;stroke-linejoin:round;filter:url(#g)}.off{opacity:.1}</style>
+    </defs>
+    <path class="s ${on.includes('a')?'':'off'}" d="M20 16 H80"/>
+    <path class="s ${on.includes('b')?'':'off'}" d="M84 20 V72"/>
+    <path class="s ${on.includes('c')?'':'off'}" d="M84 88 V140"/>
+    <path class="s ${on.includes('d')?'':'off'}" d="M20 144 H80"/>
+    <path class="s ${on.includes('e')?'':'off'}" d="M16 88 V140"/>
+    <path class="s ${on.includes('f')?'':'off'}" d="M16 20 V72"/>
+    <path class="s ${on.includes('g')?'':'off'}" d="M20 80 H80"/>
+  </svg>`;
 }
+function colonSVG(show){const neon=colorVar();return `<div class="digit colon ${show?'':'hide'}">
+  <svg viewBox="0 0 60 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs><style>.d{fill:${neon};filter:drop-shadow(0 0 6px ${neon})}</style></defs>
+    <circle class="d dots" cx="30" cy="50" r="8"/><circle class="d dots" cx="30" cy="110" r="8"/>
+  </svg></div>`;}
 
-document.addEventListener('visibilitychange', () => {
-    if (wakeLock !== null && document.visibilityState === 'visible') {
-        requestWakeLock();
-    }
-});
-
-function updateClock() {
-    const now = new Date();
-    let hh = now.getHours();
-    let mm = now.getMinutes();
-    let ss = now.getSeconds();
-    const ampm = hh >= 12 ? 'PM' : 'AM';
-    hh = hh % 12 || 12;
-    hh = String(hh).padStart(2, '0');
-    mm = String(mm).padStart(2, '0');
-    ss = String(ss).padStart(2, '0');
-
-    const colon = (now.getSeconds() % 2 === 0) ? ':' : ' ';
-    document.getElementById('clock').innerHTML = `<span style="font-size:1em;">${hh}</span>${colon}<span style="font-size:1em;">${mm}</span>:<span style="font-size:0.6em; vertical-align:baseline;">${ss}</span> ${ampm}`;
+function renderTime(now){
+  let h=now.getHours(); const ampm=h>=12?'PM':'AM'; h=h%12||12;
+  const m=now.getMinutes(), s=now.getSeconds();
+  const hh=String(h).padStart(2,'0'), mm=String(m).padStart(2,'0'), ss=String(s).padStart(2,'0');
+  const showColon=s%2===0;
+  let html='';
+  html+=`<div class="unit"><div class="digit">${digitSVG(hh[0])}</div></div>`;
+  html+=`<div class="unit"><div class="digit">${digitSVG(hh[1])}</div></div>`;
+  html+=colonSVG(showColon);
+  html+=`<div class="unit"><div class="digit">${digitSVG(mm[0])}</div></div>`;
+  html+=`<div class="unit"><div class="digit">${digitSVG(mm[1])}</div></div>`;
+  html+=colonSVG(showColon);
+  html+=`<div class="unit sec"><div class="digit">${digitSVG(ss[0])}</div></div>`;
+  html+=`<div class="unit sec"><div class="digit">${digitSVG(ss[1])}</div></div>`;
+  html+=`<div class="unit am_pm"><span style="font:600 28px system-ui;color:${colorVar()};text-shadow:var(--glow1)">`+ampm+`</span></div>`;
+  return html;
 }
+const clock=document.getElementById('clock');
+function tick(){ clock.innerHTML=renderTime(new Date()); }
+setInterval(tick,1000); tick();
 
-setInterval(updateClock, 1000);
-updateClock();
+// Controls
+const color=document.getElementById('color');
+color.addEventListener('input',e=>{document.documentElement.style.setProperty('--neon',e.target.value); tick();});
+const size=document.getElementById('size');
+size.addEventListener('input',e=>{document.documentElement.style.setProperty('--size',e.target.value);});
+const refresh=document.getElementById('refresh'), refreshVal=document.getElementById('refreshVal');
+document.getElementById('inc').addEventListener('click',()=>{const v=Math.min(60,parseInt(refresh.value)+5);refresh.value=v;refreshVal.textContent=v;});
+document.getElementById('dec').addEventListener('click',()=>{const v=Math.max(5,parseInt(refresh.value)-5);refresh.value=v;refreshVal.textContent=v;});
+refresh.addEventListener('input',e=>{refreshVal.textContent=e.target.value;});
 
-// Fallback to keep awake on iOS by refreshing every X seconds
-setInterval(() => {
-    window.scrollTo(0, 0);
-}, refreshInterval * 1000);
-
-document.getElementById('fontSize').addEventListener('input', function() {
-    document.getElementById('clock').style.fontSize = this.value + 'px';
-});
-
-document.getElementById('fontColor').addEventListener('input', function() {
-    document.getElementById('clock').style.color = this.value;
-    document.getElementById('clock').style.textShadow = `0 0 10px ${this.value}, 0 0 20px ${this.value}`;
-});
-
-document.getElementById('increase').addEventListener('click', function() {
-    if (refreshInterval < 60) refreshInterval += 5;
-    document.getElementById('refreshValue').innerText = refreshInterval;
-});
-
-document.getElementById('decrease').addEventListener('click', function() {
-    if (refreshInterval > 5) refreshInterval -= 5;
-    document.getElementById('refreshValue').innerText = refreshInterval;
-});
-
+// Wake Lock + iOS fallback heartbeat
+let wakeLock=null;
+async function requestWakeLock(){try{if('wakeLock'in navigator){wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>{});}}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')requestWakeLock();});
 requestWakeLock();
+// heartbeat to keep iOS devices awake by frequent, user-initiated-like activity
+setInterval(()=>{ window.scrollTo(0,0); }, 10000);
+refresh.dispatchEvent(new Event('input')); // init display
+
+// PWA
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
 </script>
 </body>
 </html>
