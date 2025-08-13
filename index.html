@@ -10,6 +10,7 @@
   :root {
     --bg: #000;
     --neon: #00ffff;
+    --main-size: 96px;
   }
   body {
     margin: 0;
@@ -17,36 +18,53 @@
     color: var(--neon);
     font-family: 'Courier New', monospace;
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
     height: 100vh;
     padding-top: 20px;
+    padding-bottom: 10px;
+  }
+  .controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
   }
   .clock {
     display: flex;
     align-items: baseline;
     font-weight: bold;
-    text-shadow: 0 0 10px var(--neon), 0 0 20px var(--neon);
+    text-shadow: 0 0 15px var(--neon), 0 0 30px var(--neon), 0 0 50px var(--neon);
   }
   .time {
-    font-size: 64px;
+    font-size: var(--main-size);
   }
   .colon {
-    width: 24px;
+    width: 32px;
     text-align: center;
     animation: blink 1s steps(1) infinite;
+    font-size: var(--main-size);
   }
   @keyframes blink {
     50% { opacity: 0; }
   }
   .seconds {
-    font-size: 32px;
+    font-size: calc(var(--main-size) * 0.5);
     margin-left: 8px;
   }
   .ampm {
-    font-size: 20px;
-    margin-left: 4px;
+    font-size: calc(var(--main-size) * 0.25);
+    margin-left: 6px;
     opacity: 0.8;
+  }
+  .footer {
+    font-size: 14px;
+    opacity: 0.6;
+    text-shadow: 0 0 5px var(--neon);
+  }
+  input[type="color"], input[type="range"] {
+    cursor: pointer;
   }
 </style>
 </head>
@@ -59,6 +77,13 @@
     <div id="seconds" class="seconds">--</div>
     <div id="ampm" class="ampm">--</div>
   </div>
+
+  <div class="controls">
+    <label>Glow Color: <input type="color" id="colorPicker" value="#00ffff"></label>
+    <label>Font Size: <input type="range" id="sizeSlider" min="50" max="150" value="96"></label>
+  </div>
+
+  <div class="footer">APP-BY-JEET</div>
 
 <script>
 function updateClock() {
@@ -76,6 +101,16 @@ function updateClock() {
 }
 setInterval(updateClock, 1000);
 updateClock();
+
+// Color picker functionality
+document.getElementById('colorPicker').addEventListener('input', function(e) {
+  document.documentElement.style.setProperty('--neon', e.target.value);
+});
+
+// Font size slider functionality
+document.getElementById('sizeSlider').addEventListener('input', function(e) {
+  document.documentElement.style.setProperty('--main-size', e.target.value + 'px');
+});
 
 // Register service worker
 if ('serviceWorker' in navigator) {
