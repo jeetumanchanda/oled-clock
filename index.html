@@ -1,113 +1,221 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.png">
 <title>Neon Clock</title>
 <style>
-@font-face {
-    font-family: 'Digital8';
-    src: url(data:font/ttf;base64,RkFLRUZPTlREQVRB) format('truetype');
-    font-weight: normal;
-    font-style: normal;
+:root{
+  --bg:#000;
+  --neon:#00ffff;
+  --size:120; /* base unit for HH and MM in px */
+  --sec-scale:0.55; /* seconds relative size */
+  --glow1: 0 0 6px var(--neon);
+  --glow2: 0 0 14px var(--neon);
 }
-body {
-    margin: 0;
-    background-color: black;
-    color: #0ff;
-    font-family: 'Digital8', monospace;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    height: 100vh;
-    overflow: hidden;
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--neon);font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial}
+.app{min-height:100%;display:flex;flex-direction:column;align-items:center}
+
+/* CLOCK AREA */
+.clock-wrap{width:100%;display:flex;justify-content:center;align-items:flex-start;padding:14px 10px 4px}
+.clock{
+  display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:center;
+  max-width:100%;gap:6px;line-height:1;
+  text-shadow: var(--glow1), var(--glow2);
 }
-#clock {
-    text-align: center;
-    word-wrap: break-word;
-    max-width: 100%;
-    line-height: 1;
-    filter: drop-shadow(0 0 3px currentColor);
+
+/* Each digit/colon box reserves width to avoid jumps */
+.unit{display:flex;align-items:flex-end;justify-content:center}
+.digit{width:calc(var(--size) * 0.7px);height:calc(var(--size) * 1.2px);display:flex;align-items:center;justify-content:center}
+.digit svg{width:100%;height:100%;filter: drop-shadow(0 0 6px var(--neon));}
+
+/* colon: fixed width; toggle opacity (not display) to prevent reflow */
+.colon{width:calc(var(--size) * 0.24px);display:flex;align-items:center;justify-content:center}
+.colon .dots{opacity:1;transition:opacity .2s}
+.colon.hide .dots{opacity:0}
+
+/* seconds smaller but on same baseline */
+.sec{transform-origin:left bottom;transform:scale(var(--sec-scale));}
+.am_pm{transform-origin:left bottom;transform:scale(calc(var(--sec-scale) * 0.7)); margin-left:6px}
+
+/* CONTROL BAR pinned above footer */
+.controls{
+  margin-top:auto; /* pushes controls down */
+  width:100%;display:flex;flex-direction:column;align-items:center;gap:10px;
+  padding:10px 14px 6px;
 }
-.seconds {
-    font-size: 0.4em;
-    vertical-align: top;
+.bar{
+  width:min(720px, 96%);display:flex;gap:12px;align-items:center;justify-content:space-between;
+  border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 12px;
+  background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));
 }
-.controls {
-    margin-top: 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-label {
-    color: #fff;
-    margin-top: 5px;
-}
-footer {
-    margin-top: auto;
-    margin-bottom: 10px;
-    font-size: 0.8em;
-    color: #888;
+.group{display:flex;gap:10px;align-items:center}
+label{font-size:13px;opacity:.85}
+input[type="color"], input[type="range"]{appearance:none; background:transparent; cursor:pointer}
+input[type="range"]{width:240px}
+
+/* FOOTER */
+.footer{margin:8px 0 12px;font-size:12px;opacity:.6;text-shadow: var(--glow1)}
+
+/* Responsive tweaks */
+@media (max-width:480px){
+  :root{ --size:96; --sec-scale:0.55; }
+  .bar{gap:10px}
+  input[type="range"]{width:160px}
 }
 </style>
 </head>
 <body>
-<div id="clock">--:--<span class="seconds">--</span></div>
-<div class="controls">
-    <label>Color: <input type="color" id="colorPicker" value="#00ffff"></label>
-    <label>Font Size: <input type="range" id="fontSize" min="50" max="300" value="150"></label>
+<div class="app">
+  <div class="clock-wrap">
+    <div id="clock" class="clock" aria-label="Neon digital clock"></div>
+  </div>
+
+  <div class="controls">
+    <div class="bar">
+      <div class="group">
+        <label for="color">Color</label>
+        <input id="color" type="color" value="#00ffff" aria-label="Pick glow color">
+      </div>
+      <div class="group">
+        <label for="size">Size</label>
+        <input id="size" type="range" min="80" max="220" value="120" aria-label="Adjust clock size">
+      </div>
+    </div>
+    <div class="footer">APP-BY-JEET</div>
+  </div>
 </div>
-<footer>APP-BY-JEET</footer>
+
 <script>
-let wakeLock = null;
-async function requestWakeLock() {
-    try {
-        if ('wakeLock' in navigator) {
-            wakeLock = await navigator.wakeLock.request('screen');
-            wakeLock.addEventListener('release', () => {
-                console.log('Wake Lock released');
-            });
-        }
-    } catch (err) {
-        console.error(err);
-    }
+/* ===== 8-segment style digits rendered as inline SVG =====
+   Segments: a,b,c,d,e,f,g plus dp (unused) – we'll light strokes with neon color.
+*/
+const colorVar = () => getComputedStyle(document.documentElement).getPropertyValue('--neon').trim() || '#00ffff';
+
+const SEGMENTS = {
+  "0": ["a","b","c","d","e","f"],
+  "1": ["b","c"],
+  "2": ["a","b","g","e","d"],
+  "3": ["a","b","g","c","d"],
+  "4": ["f","g","b","c"],
+  "5": ["a","f","g","c","d"],
+  "6": ["a","f","e","d","c","g"],
+  "7": ["a","b","c"],
+  "8": ["a","b","c","d","e","f","g"],
+  "9": ["a","b","c","d","f","g"]
+};
+
+function digitSVG(ch){
+  const on = SEGMENTS[ch] || [];
+  const neon = colorVar();
+  // ViewBox 100x160; segment paths sized for a blocky 7/8-seg look
+  return `<svg viewBox="0 0 100 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="2" result="blur"/><feMerge>
+          <feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+      <style>
+        .seg{fill:none;stroke:${neon};stroke-width:16;stroke-linecap:round;stroke-linejoin:round;filter:url(#glow);}
+        .off{opacity:.08;}
+      </style>
+    </defs>
+    <path class="seg ${on.includes('a')?'':'off'}" d="M20 16 H80"/>
+    <path class="seg ${on.includes('b')?'':'off'}" d="M84 20 V72"/>
+    <path class="seg ${on.includes('c')?'':'off'}" d="M84 88 V140"/>
+    <path class="seg ${on.includes('d')?'':'off'}" d="M20 144 H80"/>
+    <path class="seg ${on.includes('e')?'':'off'}" d="M16 88 V140"/>
+    <path class="seg ${on.includes('f')?'':'off'}" d="M16 20 V72"/>
+    <path class="seg ${on.includes('g')?'':'off'}" d="M20 80 H80"/>
+  </svg>`;
 }
-document.addEventListener('visibilitychange', () => {
-    if (wakeLock !== null && document.visibilityState === 'visible') {
-        requestWakeLock();
+
+function colonSVG(visible){
+  const neon = colorVar();
+  return `<div class="digit colon ${visible?'':'hide'}">
+    <svg viewBox="0 0 60 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs><style>.d{fill:${neon};filter:drop-shadow(0 0 6px ${neon})}</style></defs>
+      <circle class="d dots" cx="30" cy="50" r="8"/><circle class="d dots" cx="30" cy="110" r="8"/>
+    </svg>
+  </div>`;
+}
+
+function renderTime(now){
+  let h = now.getHours();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  const m = now.getMinutes();
+  const s = now.getSeconds();
+
+  const hh = String(h).padStart(2,'0');
+  const mm = String(m).padStart(2,'0');
+  const ss = String(s).padStart(2,'0');
+  const showColon = s % 2 === 0;
+
+  // Build DOM string: HH : MM : SS (seconds smaller via CSS scale but inline)
+  let html = '';
+  // hours
+  html += `<div class="unit"><div class="digit">${digitSVG(hh[0])}</div></div>`;
+  html += `<div class="unit"><div class="digit">${digitSVG(hh[1])}</div></div>`;
+  // colon (fixed width, opacity toggle)
+  html += colonSVG(showColon);
+  // minutes
+  html += `<div class="unit"><div class="digit">${digitSVG(mm[0])}</div></div>`;
+  html += `<div class="unit"><div class="digit">${digitSVG(mm[1])}</div></div>`;
+  // colon before seconds
+  html += colonSVG(showColon);
+  // seconds group (scaled but baseline aligned)
+  html += `<div class="unit sec"><div class="digit">${digitSVG(ss[0])}</div></div>`;
+  html += `<div class="unit sec"><div class="digit">${digitSVG(ss[1])}</div></div>`;
+  // AM/PM (scaled text)
+  html += `<div class="unit am_pm"><span style="font:600 28px system-ui; color:${colorVar()}; text-shadow:var(--glow1)">${ampm}</span></div>`;
+
+  return html;
+}
+
+const clock = document.getElementById('clock');
+
+function tick(){
+  clock.innerHTML = renderTime(new Date());
+}
+setInterval(tick, 1000);
+tick();
+
+// Controls
+const color = document.getElementById('color');
+color.addEventListener('input', e => {
+  document.documentElement.style.setProperty('--neon', e.target.value);
+  tick(); // re-render to apply new color inside SVG
+});
+
+const size = document.getElementById('size');
+size.addEventListener('input', e => {
+  document.documentElement.style.setProperty('--size', e.target.value);
+});
+
+// Wake Lock to keep screen on
+let wakeLock = null;
+async function requestWakeLock(){
+  try{
+    if('wakeLock' in navigator){
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', ()=>{});
     }
+  }catch(e){/* ignore */}
+}
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible') requestWakeLock();
 });
 requestWakeLock();
 
-function updateClock() {
-    const now = new Date();
-    let hours = now.getHours();
-    const minutes = now.getMinutes();
-    const seconds = now.getSeconds();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12;
-    hours = hours ? hours : 12;
-    const hh = String(hours).padStart(2, '0');
-    const mm = String(minutes).padStart(2, '0');
-    const ss = String(seconds).padStart(2, '0');
-    const colon = seconds % 2 === 0 ? ':' : ' ';
-    document.getElementById('clock').innerHTML = `${hh}${colon}${mm}<span class="seconds">${colon}${ss} ${ampm}</span>`;
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-document.getElementById('colorPicker').addEventListener('input', function() {
-    document.getElementById('clock').style.color = this.value;
-});
-document.getElementById('fontSize').addEventListener('input', function() {
-    document.getElementById('clock').style.fontSize = this.value + 'px';
-});
-
+// PWA
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js');
+  navigator.serviceWorker.register('service-worker.js').catch(()=>{});
 }
 </script>
 </body>
