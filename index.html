@@ -3,131 +3,111 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Neon Clock</title>
+<meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="512x512" href="icon.png">
+<title>Neon Clock</title>
 <style>
-  :root {
-    --bg: #000;
-    --neon: #00ffff;
-    --main-size: 96px;
-  }
-  body {
+@font-face {
+    font-family: 'Digital8';
+    src: url(data:font/ttf;base64,RkFLRUZPTlREQVRB) format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+body {
     margin: 0;
-    background: var(--bg);
-    color: var(--neon);
-    font-family: 'Courier New', monospace;
+    background-color: black;
+    color: #0ff;
+    font-family: 'Digital8', monospace;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     align-items: center;
+    justify-content: flex-start;
     height: 100vh;
-    padding-top: 20px;
-    padding-bottom: 10px;
-  }
-  .controls {
+    overflow: hidden;
+}
+#clock {
+    text-align: center;
+    word-wrap: break-word;
+    max-width: 100%;
+    line-height: 1;
+    filter: drop-shadow(0 0 3px currentColor);
+}
+.seconds {
+    font-size: 0.4em;
+    vertical-align: top;
+}
+.controls {
+    margin-top: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-  }
-  .clock {
-    display: flex;
-    align-items: baseline;
-    font-weight: bold;
-    text-shadow: 0 0 15px var(--neon), 0 0 30px var(--neon), 0 0 50px var(--neon);
-  }
-  .time {
-    font-size: var(--main-size);
-  }
-  .colon {
-    width: 32px;
-    text-align: center;
-    animation: blink 1s steps(1) infinite;
-    font-size: var(--main-size);
-  }
-  @keyframes blink {
-    50% { opacity: 0; }
-  }
-  .seconds {
-    font-size: calc(var(--main-size) * 0.5);
-    margin-left: 8px;
-  }
-  .ampm {
-    font-size: calc(var(--main-size) * 0.25);
-    margin-left: 6px;
-    opacity: 0.8;
-  }
-  .footer {
-    font-size: 14px;
-    opacity: 0.6;
-    text-shadow: 0 0 5px var(--neon);
-  }
-  input[type="color"], input[type="range"] {
-    cursor: pointer;
-  }
+}
+label {
+    color: #fff;
+    margin-top: 5px;
+}
+footer {
+    margin-top: auto;
+    margin-bottom: 10px;
+    font-size: 0.8em;
+    color: #888;
+}
 </style>
 </head>
 <body>
-  <div class="clock">
-    <div id="hours" class="time">--</div>
-    <div class="colon">:</div>
-    <div id="minutes" class="time">--</div>
-    <div class="colon">:</div>
-    <div id="seconds" class="seconds">--</div>
-    <div id="ampm" class="ampm">--</div>
-  </div>
-
-  <div class="controls">
-    <label>Glow Color: <input type="color" id="colorPicker" value="#00ffff"></label>
-    <label>Font Size: <input type="range" id="sizeSlider" min="50" max="150" value="96"></label>
-  </div>
-
-  <div class="footer">APP-BY-JEET</div>
-
+<div id="clock">--:--<span class="seconds">--</span></div>
+<div class="controls">
+    <label>Color: <input type="color" id="colorPicker" value="#00ffff"></label>
+    <label>Font Size: <input type="range" id="fontSize" min="50" max="300" value="150"></label>
+</div>
+<footer>APP-BY-JEET</footer>
 <script>
-function updateClock() {
-  const now = new Date();
-  let hours = now.getHours();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12 || 12;
-  const minutes = now.getMinutes().toString().padStart(2, '0');
-  const seconds = now.getSeconds().toString().padStart(2, '0');
+let wakeLock = null;
+async function requestWakeLock() {
+    try {
+        if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+            wakeLock.addEventListener('release', () => {
+                console.log('Wake Lock released');
+            });
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+document.addEventListener('visibilitychange', () => {
+    if (wakeLock !== null && document.visibilityState === 'visible') {
+        requestWakeLock();
+    }
+});
+requestWakeLock();
 
-  document.getElementById('hours').textContent = hours.toString().padStart(2, '0');
-  document.getElementById('minutes').textContent = minutes;
-  document.getElementById('seconds').textContent = seconds;
-  document.getElementById('ampm').textContent = ampm;
+function updateClock() {
+    const now = new Date();
+    let hours = now.getHours();
+    const minutes = now.getMinutes();
+    const seconds = now.getSeconds();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const hh = String(hours).padStart(2, '0');
+    const mm = String(minutes).padStart(2, '0');
+    const ss = String(seconds).padStart(2, '0');
+    const colon = seconds % 2 === 0 ? ':' : ' ';
+    document.getElementById('clock').innerHTML = `${hh}${colon}${mm}<span class="seconds">${colon}${ss} ${ampm}</span>`;
 }
 setInterval(updateClock, 1000);
 updateClock();
 
-// Color picker functionality
-document.getElementById('colorPicker').addEventListener('input', function(e) {
-  document.documentElement.style.setProperty('--neon', e.target.value);
+document.getElementById('colorPicker').addEventListener('input', function() {
+    document.getElementById('clock').style.color = this.value;
+});
+document.getElementById('fontSize').addEventListener('input', function() {
+    document.getElementById('clock').style.fontSize = this.value + 'px';
 });
 
-// Font size slider functionality
-document.getElementById('sizeSlider').addEventListener('input', function(e) {
-  document.documentElement.style.setProperty('--main-size', e.target.value + 'px');
-});
-
-// Register service worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js');
-}
-
-// Keep screen awake (Wake Lock API)
-if ('wakeLock' in navigator) {
-  let wakeLock = null;
-  async function requestWakeLock() {
-    try {
-      wakeLock = await navigator.wakeLock.request('screen');
-    } catch (err) {
-      console.error(`${err.name}, ${err.message}`);
-    }
-  }
-  requestWakeLock();
+    navigator.serviceWorker.register('service-worker.js');
 }
 </script>
 </body>
